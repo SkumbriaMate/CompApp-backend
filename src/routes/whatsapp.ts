@@ -6,14 +6,29 @@ export const whatsappRouter = Router();
 
 whatsappRouter.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+  const tokenRaw = req.query["hub.verify_token"];
+  const challengeRaw = req.query["hub.challenge"];
+  const token = typeof tokenRaw === "string" ? tokenRaw.trim() : "";
+  const challenge =
+    typeof challengeRaw === "string"
+      ? challengeRaw
+      : Array.isArray(challengeRaw)
+        ? challengeRaw[0]
+        : "";
+  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN?.trim() ?? "";
 
-  if (mode === "subscribe" && token === verifyToken && challenge) {
+  if (mode === "subscribe" && token && verifyToken && token === verifyToken && challenge) {
     console.log("[WhatsApp] Webhook verified");
     res.status(200).send(challenge);
     return;
+  }
+
+  if (mode === "subscribe") {
+    console.warn("[WhatsApp] Webhook verify failed", {
+      hasVerifyToken: Boolean(verifyToken),
+      tokenMatch: token === verifyToken,
+      hasChallenge: Boolean(challenge),
+    });
   }
 
   res.sendStatus(403);
