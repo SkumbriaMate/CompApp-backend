@@ -1,3 +1,4 @@
+import { buildWhatsAppBotUrl } from "../lib/whatsapp-bot-url.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import {
   ensureCompanyOwnerRole,
@@ -57,6 +58,12 @@ export async function getSessionFromToken(deviceToken: string) {
   const role = await ensureCompanyOwnerRole(profile);
   const canManageTeam = isManagerOrOwner(role);
 
+  const { data: company } = await supabaseAdmin
+    .from("companies")
+    .select("name")
+    .eq("id", profile.company_id)
+    .maybeSingle();
+
   await supabaseAdmin
     .from("device_sessions")
     .update({ last_seen_at: new Date().toISOString() })
@@ -64,6 +71,8 @@ export async function getSessionFromToken(deviceToken: string) {
 
   return {
     profile: { ...profile, role },
+    companyName: company?.name ?? "",
+    whatsappBotUrl: buildWhatsAppBotUrl(),
     permissions: {
       canManageTeam,
       role,
