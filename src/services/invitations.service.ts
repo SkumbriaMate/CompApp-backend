@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { getFrontendUrl } from "../lib/frontend-url.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 
 function normalizeEmail(email: string) {
@@ -85,7 +86,7 @@ export async function createInvitation(
   }
 
   if (process.env.NODE_ENV !== "production") {
-    const base = process.env.FRONTEND_URL ?? "http://localhost:3000";
+    const base = getFrontendUrl();
     console.log(`[INVITE] ${normalizedEmail} (${role}) → ${base}/ka/invite/${token}`);
   }
 

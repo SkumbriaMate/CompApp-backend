@@ -5,6 +5,7 @@ import {
   otpExpiresAt,
   verifyOtpCode,
 } from "../lib/otp.js";
+import { sendOtpEmail } from "../lib/email.js";
 import { slugifyCompanyName, uniqueSlugSuffix } from "../lib/slug.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 
@@ -40,12 +41,6 @@ function draftExpiresAt() {
 
 function sessionExpiresAt() {
   return new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-}
-
-function logOtp(email: string, code: string, purpose: string) {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[OTP ${purpose}] ${email}: ${code}`);
-  }
 }
 
 async function ensureUniqueSlug(baseName: string): Promise<string> {
@@ -134,7 +129,7 @@ export async function startRegistration(payload: RegisterStartPayload) {
     throw new Error(otpError.message);
   }
 
-  logOtp(email, code, "register");
+  await sendOtpEmail(email, code, "register");
 
   return {
     draftId: draft.id,

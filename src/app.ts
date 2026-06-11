@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import { getFrontendUrl } from "./lib/frontend-url.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { authRouter } from "./routes/auth.js";
 import { dashboardRouter } from "./routes/dashboard.js";
@@ -16,7 +17,7 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: process.env.FRONTEND_URL ?? "http://localhost:3000",
+      origin: getFrontendUrl(),
       credentials: true,
     })
   );

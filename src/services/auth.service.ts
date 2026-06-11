@@ -6,6 +6,7 @@ import {
   verifyOtpCode,
 } from "../lib/otp.js";
 import { supabaseAdmin } from "../lib/supabase.js";
+import { sendOtpEmail } from "../lib/email.js";
 import {
   ensureCompanyOwnerRole,
   findActiveProfileByEmail,
@@ -18,12 +19,6 @@ const SESSION_DAYS = Number(process.env.SESSION_DAYS) || 7;
 
 function sessionExpiresAt() {
   return new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-}
-
-function logOtp(email: string, code: string) {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[OTP login] ${email}: ${code}`);
-  }
 }
 
 export async function sendLoginOtp(email: string) {
@@ -54,7 +49,7 @@ export async function sendLoginOtp(email: string) {
     throw new Error(otpError.message);
   }
 
-  logOtp(normalizedEmail, code);
+  await sendOtpEmail(normalizedEmail, code, "login");
 
   return {
     email: normalizedEmail,
