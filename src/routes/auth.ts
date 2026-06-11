@@ -1,42 +1,47 @@
 import { Router } from "express";
 import {
-  getSessionFromToken,
-  sendLoginOtp,
-  verifyLoginOtp,
-} from "../services/auth.service.js";
+  completeInviteWithGoogle,
+  loginWithGoogle,
+} from "../services/google-auth.service.js";
+import { getSessionFromToken } from "../services/auth.service.js";
 
 export const authRouter = Router();
 
-authRouter.post("/otp/send", async (req, res) => {
+authRouter.post("/google", async (req, res) => {
   try {
-    const { email } = req.body ?? {};
+    const { credential } = req.body ?? {};
 
-    if (!email || typeof email !== "string") {
-      res.status(400).json({ error: "Email is required" });
+    if (!credential || typeof credential !== "string") {
+      res.status(400).json({ error: "Google credential is required" });
       return;
     }
 
-    const result = await sendLoginOtp(email);
+    const result = await loginWithGoogle(credential);
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to send code";
+    const message = err instanceof Error ? err.message : "Google sign-in failed";
     res.status(400).json({ error: message });
   }
 });
 
-authRouter.post("/otp/verify", async (req, res) => {
+authRouter.post("/google/accept-invite", async (req, res) => {
   try {
-    const { email, code } = req.body ?? {};
+    const { credential, firstName, lastName, phone } = req.body ?? {};
 
-    if (!email || !code) {
-      res.status(400).json({ error: "Email and code are required" });
+    if (!credential || typeof credential !== "string") {
+      res.status(400).json({ error: "Google credential is required" });
       return;
     }
 
-    const result = await verifyLoginOtp(email, code);
+    const result = await completeInviteWithGoogle(
+      credential,
+      typeof firstName === "string" ? firstName : "",
+      typeof lastName === "string" ? lastName : "",
+      typeof phone === "string" ? phone : ""
+    );
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Verification failed";
+    const message = err instanceof Error ? err.message : "Failed to join team";
     res.status(400).json({ error: message });
   }
 });

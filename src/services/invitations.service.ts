@@ -6,6 +6,46 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+export async function findPendingInvitationByEmail(email: string) {
+  const normalized = normalizeEmail(email);
+
+  const { data, error } = await supabaseAdmin
+    .from("invitations")
+    .select(
+      `
+      id,
+      company_id,
+      email,
+      role,
+      expires_at,
+      company:companies(id, name)
+    `
+    )
+    .eq("email", normalized)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  if (new Date(data.expires_at) < new Date()) {
+    return null;
+  }
+
+  const company = Array.isArray(data.company) ? data.company[0] : data.company;
+
+  return {
+    id: data.id,
+    companyId: data.company_id,
+    email: data.email,
+    role: data.role as "manager" | "employee" | "accountant",
+    companyName: company?.name ?? "CompApp",
+  };
+}
+
 export async function listInvitations(companyId: string) {
   const { data, error } = await supabaseAdmin
     .from("invitations")
@@ -87,7 +127,9 @@ export async function createInvitation(
 
   if (process.env.NODE_ENV !== "production") {
     const base = getFrontendUrl();
-    console.log(`[INVITE] ${normalizedEmail} (${role}) → ${base}/ka/invite/${token}`);
+    console.log(
+      `[INVITE] ${normalizedEmail} (${role}) → sign in at ${base}/ka/login with this Google account`
+    );
   }
 
   return {

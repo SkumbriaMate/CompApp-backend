@@ -1,34 +1,25 @@
 import { Router } from "express";
-import {
-  startRegistration,
-  verifyRegistration,
-} from "../services/register.service.js";
+import { completeRegistrationWithGoogle } from "../services/google-auth.service.js";
 
 export const registerRouter = Router();
 
-registerRouter.post("/start", async (req, res) => {
+registerRouter.post("/complete", async (req, res) => {
   try {
-    const result = await startRegistration(req.body);
-    res.json(result);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Registration failed";
-    res.status(400).json({ error: message });
-  }
-});
+    const { credential, company, sections, teamMembers } = req.body ?? {};
 
-registerRouter.post("/verify", async (req, res) => {
-  try {
-    const { draftId, email, code } = req.body ?? {};
-
-    if (!draftId || !email || !code) {
-      res.status(400).json({ error: "draftId, email, and code are required" });
+    if (!credential || typeof credential !== "string") {
+      res.status(400).json({ error: "Google credential is required" });
       return;
     }
 
-    const result = await verifyRegistration(draftId, email, code);
+    const result = await completeRegistrationWithGoogle(credential, {
+      company: company ?? {},
+      sections: Array.isArray(sections) ? sections : [],
+      teamMembers: Array.isArray(teamMembers) ? teamMembers : [],
+    });
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Verification failed";
+    const message = err instanceof Error ? err.message : "Registration failed";
     res.status(400).json({ error: message });
   }
 });
