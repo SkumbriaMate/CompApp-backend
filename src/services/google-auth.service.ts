@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { verifyGoogleIdToken } from "../lib/google-auth.js";
 import { normalizePhoneE164 } from "../lib/phone.js";
+import { buildWhatsAppBotUrl } from "../lib/whatsapp-bot-url.js";
 import { slugifyCompanyName, uniqueSlugSuffix } from "../lib/slug.js";
 import { supabaseAdmin } from "../lib/supabase.js";
-import { sendSectionPicker, sendText } from "../lib/whatsapp-client.js";
 import { findPendingInvitationByEmail } from "./invitations.service.js";
 import {
   findActiveProfileByEmail,
@@ -359,27 +359,15 @@ export async function completeInviteWithGoogle(
     })
     .eq("id", invite.id);
 
-  const { data: sections } = await supabaseAdmin
-    .from("expense_sections")
-    .select("id, name")
-    .eq("company_id", invite.companyId)
-    .eq("is_active", true)
-    .order("sort_order");
-
-  const welcome = `Welcome to ${invite.companyName}! Upload receipts here — pick a section first.`;
-  await sendText(phoneE164, welcome);
-  await sendSectionPicker(
-    phoneE164,
-    invite.companyName,
-    (sections ?? []).map((s) => ({ id: s.id, name: s.name }))
-  );
-
   const session = await createDeviceSession(authUser.user.id);
 
   return {
     profileId: authUser.user.id,
     companyId: invite.companyId,
+    companyName: invite.companyName,
+    role: invite.role,
     deviceToken: session.deviceToken,
     expiresAt: session.expiresAt,
+    whatsappBotUrl: buildWhatsAppBotUrl(),
   };
 }

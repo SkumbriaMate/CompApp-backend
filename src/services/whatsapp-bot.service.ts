@@ -218,7 +218,15 @@ async function handleMessage(msg: IncomingMessage) {
   if (msg.type === "text") {
     const body = msg.text?.body?.trim().toLowerCase() ?? "";
     if (body === "menu" || body === "sections" || body === "start") {
-      await sendSectionPicker(from, companyName ?? "CompApp", await getSections(account.profile.company_id));
+      await sendText(
+        from,
+        `Welcome to ${companyName ?? "CompApp"}! Pick a section, then send your receipt photo.`
+      );
+      await sendSectionPicker(
+        from,
+        companyName ?? "CompApp",
+        await getSections(account.profile.company_id)
+      );
       return;
     }
     await sendText(
