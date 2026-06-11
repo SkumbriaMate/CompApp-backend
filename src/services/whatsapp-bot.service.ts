@@ -174,7 +174,7 @@ async function handleMessage(msg: IncomingMessage) {
   if (!account) {
     await sendText(
       from,
-      "You are not registered. Open the invite link from your email first."
+      "You are not registered. Sign in at CompApp with Google using your invited email."
     );
     return;
   }
