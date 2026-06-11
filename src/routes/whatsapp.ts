@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { isWhatsAppConfigured } from "../lib/whatsapp-client.js";
+import {
+  checkWhatsAppConnection,
+  isWhatsAppConfigured,
+} from "../lib/whatsapp-client.js";
 import { handleWhatsAppWebhook } from "../services/whatsapp-bot.service.js";
 
 export const whatsappRouter = Router();
@@ -44,12 +47,18 @@ whatsappRouter.post("/webhook", async (req, res) => {
   }
 });
 
-whatsappRouter.get("/status", (_req, res) => {
+whatsappRouter.get("/status", async (_req, res) => {
+  const connection = await checkWhatsAppConnection();
   res.json({
     configured: isWhatsAppConfigured(),
+    connected: connection.ok,
+    displayPhoneNumber: connection.displayPhoneNumber ?? null,
+    verifiedName: connection.verifiedName ?? null,
+    connectionError: connection.error ?? null,
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ? "set" : "missing",
     accessToken: process.env.WHATSAPP_ACCESS_TOKEN ? "set" : "missing",
     verifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ? "set" : "missing",
+    businessPhone: process.env.WHATSAPP_BUSINESS_PHONE ? "set" : "missing",
     webhookUrl: "POST /api/whatsapp/webhook",
   });
 });

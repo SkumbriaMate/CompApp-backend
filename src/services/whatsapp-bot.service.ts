@@ -172,10 +172,14 @@ async function handleMessage(msg: IncomingMessage) {
 
   const account = await findAccount(from);
   if (!account) {
-    await sendText(
+    console.warn("[WhatsApp] No linked account for", from);
+    const result = await sendText(
       from,
       "You are not registered. Sign in at CompApp with Google using your invited email."
     );
+    if (!result.ok) {
+      console.error("[WhatsApp] Reply failed (unregistered user):", result.error);
+    }
     return;
   }
 
@@ -218,20 +222,30 @@ async function handleMessage(msg: IncomingMessage) {
   if (msg.type === "text") {
     const body = msg.text?.body?.trim().toLowerCase() ?? "";
     if (body === "menu" || body === "sections" || body === "start") {
-      await sendText(
+      const welcome = await sendText(
         from,
         `Welcome to ${companyName ?? "CompApp"}! Pick a section, then send your receipt photo.`
       );
-      await sendSectionPicker(
+      if (!welcome.ok) {
+        console.error("[WhatsApp] Welcome reply failed:", welcome.error);
+        return;
+      }
+      const picker = await sendSectionPicker(
         from,
         companyName ?? "CompApp",
         await getSections(account.profile.company_id)
       );
+      if (!picker.ok) {
+        console.error("[WhatsApp] Section picker failed:", picker.error);
+      }
       return;
     }
-    await sendText(
+    const hint = await sendText(
       from,
       "Reply MENU to see sections, pick one, then send a receipt photo."
     );
+    if (!hint.ok) {
+      console.error("[WhatsApp] Hint reply failed:", hint.error);
+    }
   }
 }

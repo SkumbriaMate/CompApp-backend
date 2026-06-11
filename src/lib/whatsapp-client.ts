@@ -6,6 +6,44 @@ export function isWhatsAppConfigured(): boolean {
   );
 }
 
+export type WhatsAppConnectionStatus = {
+  ok: boolean;
+  displayPhoneNumber?: string;
+  verifiedName?: string;
+  error?: string;
+};
+
+/** Calls Meta Graph API to verify the access token and phone number ID. */
+export async function checkWhatsAppConnection(): Promise<WhatsAppConnectionStatus> {
+  if (!isWhatsAppConfigured()) {
+    return { ok: false, error: "WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID missing" };
+  }
+
+  const res = await fetch(
+    `${GRAPH}/${phoneNumberId()}?fields=display_phone_number,verified_name`,
+    { headers: { Authorization: `Bearer ${accessToken()}` } }
+  );
+
+  const data = (await res.json().catch(() => ({}))) as {
+    display_phone_number?: string;
+    verified_name?: string;
+    error?: { message: string };
+  };
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: data.error?.message ?? `Graph API ${res.status}`,
+    };
+  }
+
+  return {
+    ok: true,
+    displayPhoneNumber: data.display_phone_number,
+    verifiedName: data.verified_name,
+  };
+}
+
 function phoneNumberId() {
   const id = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!id) throw new Error("WHATSAPP_PHONE_NUMBER_ID is not set");
