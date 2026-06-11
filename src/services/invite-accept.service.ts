@@ -76,6 +76,7 @@ export async function acceptInvitation(
     .from("whatsapp_accounts")
     .select("id")
     .eq("phone_e164", phoneE164)
+    .eq("is_active", true)
     .maybeSingle();
 
   if (existingPhone) {

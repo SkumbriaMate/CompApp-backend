@@ -85,6 +85,7 @@ export async function createInvitation(
     .select("id")
     .eq("company_id", companyId)
     .eq("email", normalizedEmail)
+    .eq("is_active", true)
     .maybeSingle();
 
   if (existingProfile) {

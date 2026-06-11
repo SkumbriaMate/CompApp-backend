@@ -66,15 +66,22 @@ export async function removeTeamMember(
     throw new Error("You do not have permission to remove this person");
   }
 
+  const { data: profileRow } = await supabaseAdmin
+    .from("profiles")
+    .select("email")
+    .eq("id", targetProfileId)
+    .single();
+
+  const normalizedEmail = profileRow?.email?.trim().toLowerCase() ?? "";
   const now = new Date().toISOString();
 
-  const { error: profileError } = await supabaseAdmin
-    .from("profiles")
-    .update({ is_active: false, updated_at: now })
-    .eq("id", targetProfileId);
-
-  if (profileError) {
-    throw new Error(profileError.message);
+  if (normalizedEmail) {
+    await supabaseAdmin
+      .from("invitations")
+      .update({ status: "revoked", updated_at: now })
+      .eq("company_id", companyId)
+      .eq("email", normalizedEmail)
+      .in("status", ["pending", "accepted"]);
   }
 
   await supabaseAdmin
@@ -85,8 +92,23 @@ export async function removeTeamMember(
 
   await supabaseAdmin
     .from("whatsapp_accounts")
-    .update({ is_active: false, updated_at: now })
+    .delete()
     .eq("profile_id", targetProfileId);
+
+  const { error: deleteAuthError } =
+    await supabaseAdmin.auth.admin.deleteUser(targetProfileId);
+
+  if (deleteAuthError) {
+    const notFound =
+      deleteAuthError.message.toLowerCase().includes("not found") ||
+      deleteAuthError.message.toLowerCase().includes("user not found");
+
+    if (!notFound) {
+      throw new Error(deleteAuthError.message);
+    }
+
+    await supabaseAdmin.from("profiles").delete().eq("id", targetProfileId);
+  }
 
   return { id: targetProfileId };
 }
