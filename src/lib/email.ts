@@ -42,13 +42,12 @@ export async function sendOtpEmail(
     host: process.env.SMTP_HOST?.trim() || "smtp.gmail.com",
     port,
     secure: port === 465,
-    family: 4,
     lookup: lookupIpv4,
     connectionTimeout: 15_000,
     greetingTimeout: 15_000,
     socketTimeout: 20_000,
     auth: { user, pass },
-  });
+  } as nodemailer.TransportOptions);
 
   try {
     await transporter.sendMail({
