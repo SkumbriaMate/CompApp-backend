@@ -1,4 +1,8 @@
+import dns from "node:dns";
 import nodemailer from "nodemailer";
+
+// Railway often can't reach Gmail SMTP over IPv6 (ENETUNREACH).
+dns.setDefaultResultOrder("ipv4first");
 
 const OTP_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES) || 10;
 
@@ -26,18 +30,26 @@ export async function sendOtpEmail(
     host: process.env.SMTP_HOST?.trim() || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT) || 587,
     secure: false,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
     auth: {
       user: process.env.SMTP_USER!.trim(),
-      pass: process.env.SMTP_PASS!.trim(),
+      pass: process.env.SMTP_PASS!.replace(/\s/g, ""),
     },
   });
 
   const from = process.env.SMTP_FROM?.trim() || process.env.SMTP_USER!.trim();
 
-  await transporter.sendMail({
-    from: `CompApp <${from}>`,
-    to,
-    subject,
-    text,
-  });
+  try {
+    await transporter.sendMail({
+      from: `CompApp <${from}>`,
+      to,
+      subject,
+      text,
+    });
+  } catch (err) {
+    console.error(`[SMTP] Failed to send OTP to ${to}:`, err);
+    throw new Error("Failed to send verification email. Try again in a moment.");
+  }
 }
